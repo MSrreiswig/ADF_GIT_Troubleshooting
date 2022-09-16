@@ -1,0 +1,26 @@
+{
+	"name": "Dummyservice",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"description": "a dummy linked service",
+		"parameters": {
+			"server_name": {
+				"type": "string"
+			},
+			"database_name": {
+				"type": "string"
+			},
+			"user_name": {
+				"type": "string"
+			},
+			"user_password": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "SqlServer",
+		"typeProperties": {
+			"connectionString": "Integrated Security=False;Data Source=@{linkedService().server_name};Initial Catalog=@{linkedService().database_name};User ID=@{linkedService().user_name};Password=@{linkedService().user_password}"
+		}
+	}
+}
