@@ -1,0 +1,42 @@
+{
+	"name": "SQL_generic_LS",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"parameters": {
+			"SQLConnectionStringSecret": {
+				"type": "string"
+			},
+			"KeyVaultName": {
+				"type": "string"
+			},
+			"KeyVaultSuffix": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"connectionString": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AKV_generic_LS",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"KeyVaultName": {
+							"value": "@linkedService().KeyVaultName",
+							"type": "Expression"
+						},
+						"KeyVaultSuffix": {
+							"value": "@linkedService().KeyVaultSuffix",
+							"type": "Expression"
+						}
+					}
+				},
+				"secretName": {
+					"value": "@linkedService().SQLConnectionStringSecret",
+					"type": "Expression"
+				}
+			}
+		}
+	}
+}

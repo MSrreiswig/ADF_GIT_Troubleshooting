@@ -1,0 +1,50 @@
+{
+	"name": "CapacityReservationUsage-KustoToBlob-T",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipeline": {
+			"pipelineReference": {
+				"referenceName": "CapacityReservationUsage-KustoToBlob-P",
+				"type": "PipelineReference"
+			},
+			"parameters": {
+				"SliceStart": "@{trigger().outputs.windowStartTime}",
+				"SliceEnd": "@{trigger().outputs.windowEndTime}",
+				"AzureCloud": "Public",
+				"JobName": "CapacityReservation",
+				"IsTest": false,
+				"DatasetName": "ComputeUsage",
+				"KustoTableName": "UAEUsageData",
+				"StorageAccountName": "upeservices01prodeu",
+				"StorageAccountSuffix": "dfs.core.windows.net",
+				"KeyVaultName": "upe-common-prod-eu",
+				"KeyVaultSuffix": "vault.azure.net",
+				"StorageContainerName": "compute-usage",
+				"KustoClusterName": "Infinityfollower",
+				"KustoClusterSuffix": "kusto.windows.net",
+				"KustoDatabaseName": "aipusagedb",
+				"SQLConnectionStringSecret": "sql-metadata-executor-cs",
+				"SQLStoreProcName": "usp_InsertGenericUsageMetadata"
+			}
+		},
+		"type": "TumblingWindowTrigger",
+		"typeProperties": {
+			"frequency": "Minute",
+			"interval": 15,
+			"startTime": "2021-04-21T00:00:00Z",
+			"delay": "00:05:00",
+			"maxConcurrency": 1,
+			"retryPolicy": {
+				"count": 3,
+				"intervalInSeconds": 60
+			},
+			"dependsOn": [
+				{
+					"type": "SelfDependencyTumblingWindowTriggerReference",
+					"offset": "-0.00:15:00"
+				}
+			]
+		}
+	}
+}

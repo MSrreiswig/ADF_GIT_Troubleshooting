@@ -1,0 +1,47 @@
+{
+	"name": "ADE_generic_DS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ADE_generic_LS",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"KustoClusterName": {
+					"value": "@dataset().KustoClusterName",
+					"type": "Expression"
+				},
+				"KustoClusterSuffix": {
+					"value": "@dataset().KustoClusterSuffix",
+					"type": "Expression"
+				},
+				"KustoDatabaseName": {
+					"value": "@dataset().KustoDatabaseName",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"KustoClusterName": {
+				"type": "string"
+			},
+			"KustoClusterSuffix": {
+				"type": "string"
+			},
+			"KustoDatabaseName": {
+				"type": "string"
+			},
+			"KustoTableName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzureDataExplorerTable",
+		"schema": [],
+		"typeProperties": {
+			"table": {
+				"value": "@dataset().KustoTableName",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

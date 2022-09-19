@@ -1,0 +1,57 @@
+{
+	"name": "ADLS_generic_parquet_DS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ADLS_generic_LS",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"StorageAccountName": {
+					"value": "@dataset().StorageAccountName",
+					"type": "Expression"
+				},
+				"StorageAccountSuffix": {
+					"value": "@dataset().StorageAccountSuffix",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"StorageAccountName": {
+				"type": "string"
+			},
+			"StorageAccountSuffix": {
+				"type": "string"
+			},
+			"KeyVaultName": {
+				"type": "string"
+			},
+			"KeyVaultSuffix": {
+				"type": "string"
+			},
+			"StorageContainerName": {
+				"type": "string"
+			},
+			"FolderPath": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": {
+					"value": "@dataset().FolderPath",
+					"type": "Expression"
+				},
+				"fileSystem": {
+					"value": "@dataset().StorageContainerName",
+					"type": "Expression"
+				}
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

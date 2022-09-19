@@ -1,0 +1,370 @@
+{
+	"name": "CapacityReservationUsage-KustoToBlob-P",
+	"properties": {
+		"activities": [
+			{
+				"name": "Set FolderPath",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "FolderPath",
+					"value": {
+						"value": "usage/d=@{formatDateTime(pipeline().parameters.SliceStart,'yyyyMMdd')}/h=@{formatDateTime(pipeline().parameters.sliceStart,'HH')}/m=@{formatDateTime(pipeline().parameters.SliceStart,'mm')}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set OutputPath",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "OutputPath",
+					"value": {
+						"value": "https://@{pipeline().parameters.StorageAccountName}.@{pipeline().parameters.StorageAccountSuffix}/@{pipeline().parameters.StorageContainerName}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "CapacityReservationUsage",
+				"description": "Copy Data from Kusto: UAEUsageData to Blob",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Set FolderPath",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set OutputPath",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureDataExplorerSource",
+						"query": {
+							"value": "getUAEUsageData\n| where ingestion_time() >= datetime_add(\"Hour\",-1,datetime('@{pipeline().parameters.SliceStart}')) and ingestion_time() < datetime('@{pipeline().parameters.SliceEnd}')\n| where resource_provider =~ \"Compute\"\n| where resourceUri contains \"microsoft.compute\" and payload contains \"\\\"ComputeHR\\\"\" and payload contains \"VMCapacityReservationId\"",
+							"type": "Expression"
+						},
+						"queryTimeout": "00:30:00",
+						"noTruncation": true
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings",
+							"maxRowsPerFile": 50000,
+							"fileNamePrefix": "ComputeUsage_"
+						}
+					},
+					"enableStaging": false,
+					"parallelCopies": 3,
+					"logSettings": {
+						"enableCopyActivityLog": true,
+						"copyActivityLogSettings": {
+							"logLevel": "Warning",
+							"enableReliableLogging": false
+						},
+						"logLocationSettings": {
+							"linkedServiceName": {
+								"referenceName": "ADLS_generic_LS",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"StorageAccountName": {
+										"value": "@pipeline().parameters.StorageAccountName",
+										"type": "Expression"
+									},
+									"StorageAccountSuffix": {
+										"value": "@pipeline().parameters.StorageAccountSuffix",
+										"type": "Expression"
+									}
+								}
+							},
+							"path": "cr-track/copy_logger"
+						}
+					},
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ADE_generic_DS",
+						"type": "DatasetReference",
+						"parameters": {
+							"KustoClusterName": {
+								"value": "@pipeline().parameters.KustoClusterName",
+								"type": "Expression"
+							},
+							"KustoClusterSuffix": {
+								"value": "@pipeline().parameters.KustoClusterSuffix",
+								"type": "Expression"
+							},
+							"KustoDatabaseName": {
+								"value": "@pipeline().parameters.KustoDatabaseName",
+								"type": "Expression"
+							},
+							"KustoTableName": {
+								"value": "@pipeline().parameters.KustoTableName",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ADLS_generic_parquet_DS",
+						"type": "DatasetReference",
+						"parameters": {
+							"StorageAccountName": {
+								"value": "@pipeline().parameters.StorageAccountName",
+								"type": "Expression"
+							},
+							"StorageAccountSuffix": {
+								"value": "@pipeline().parameters.StorageAccountSuffix",
+								"type": "Expression"
+							},
+							"KeyVaultName": {
+								"value": "@pipeline().parameters.KeyVaultName",
+								"type": "Expression"
+							},
+							"KeyVaultSuffix": {
+								"value": "@pipeline().parameters.KeyVaultSuffix",
+								"type": "Expression"
+							},
+							"StorageContainerName": {
+								"value": "@pipeline().parameters.StorageContainerName",
+								"type": "Expression"
+							},
+							"FolderPath": {
+								"value": "@variables('FolderPath')",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "UpdateCapacityUsageMetadata",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "CapacityReservationUsage",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": {
+						"value": "@pipeline().parameters.SQLStoreProcName",
+						"type": "Expression"
+					},
+					"storedProcedureParameters": {
+						"AzureCloud": {
+							"value": {
+								"value": "@pipeline().parameters.AzureCloud",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"DatasetName": {
+							"value": {
+								"value": "@pipeline().parameters.DatasetName",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ExtendedProperties": {
+							"value": {
+								"value": "@pipeline().parameters.ExtendedProperties",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"IsTest": {
+							"value": {
+								"value": "@pipeline().parameters.IsTest",
+								"type": "Expression"
+							},
+							"type": "Boolean"
+						},
+						"JobName": {
+							"value": {
+								"value": "@pipeline().parameters.JobName",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PublishedPath": {
+							"value": {
+								"value": "@{variables('OutputPath')}/@{variables('FolderPath')}",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RecordCount": {
+							"value": {
+								"value": "@activity('CapacityReservationUsage').output.rowsRead",
+								"type": "Expression"
+							},
+							"type": "Int64"
+						},
+						"SliceEndTime": {
+							"value": {
+								"value": "@{formatDateTime(pipeline().parameters.SliceEnd, 'yyyy-MM-dd HH:mm:ss')}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"SliceStartTime": {
+							"value": {
+								"value": "@{formatDateTime(pipeline().parameters.SliceStart, 'yyyy-MM-dd HH:mm:ss')}",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SQL_generic_LS",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"SQLConnectionStringSecret": {
+							"value": "@pipeline().parameters.SQLConnectionStringSecret",
+							"type": "Expression"
+						},
+						"KeyVaultName": {
+							"value": "@pipeline().parameters.KeyVaultName",
+							"type": "Expression"
+						},
+						"KeyVaultSuffix": {
+							"value": "@pipeline().parameters.KeyVaultSuffix",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"SliceStart": {
+				"type": "string",
+				"defaultValue": "3/13/2021 01:45:00 AM"
+			},
+			"SliceEnd": {
+				"type": "string",
+				"defaultValue": "3/13/2021 02:00:00 AM"
+			},
+			"AzureCloud": {
+				"type": "string",
+				"defaultValue": "Public"
+			},
+			"JobName": {
+				"type": "string",
+				"defaultValue": "CapacityReservation"
+			},
+			"IsTest": {
+				"type": "bool",
+				"defaultValue": true
+			},
+			"DatasetName": {
+				"type": "string",
+				"defaultValue": "TestRun-MockUsage"
+			},
+			"ExtendedProperties": {
+				"type": "string"
+			},
+			"KustoTableName": {
+				"type": "string",
+				"defaultValue": "UAEUsageData"
+			},
+			"StorageAccountName": {
+				"type": "string",
+				"defaultValue": "upeservices01deveu"
+			},
+			"StorageAccountSuffix": {
+				"type": "string",
+				"defaultValue": "dfs.core.windows.net"
+			},
+			"KeyVaultName": {
+				"type": "string",
+				"defaultValue": "upe-common-dev-eu"
+			},
+			"KeyVaultSuffix": {
+				"type": "string",
+				"defaultValue": "vault.azure.net"
+			},
+			"StorageContainerName": {
+				"type": "string",
+				"defaultValue": "mock-usage"
+			},
+			"KustoClusterName": {
+				"type": "string",
+				"defaultValue": "Infinityfollower"
+			},
+			"KustoClusterSuffix": {
+				"type": "string",
+				"defaultValue": "kusto.windows.net"
+			},
+			"KustoDatabaseName": {
+				"type": "string",
+				"defaultValue": "aipusagedb"
+			},
+			"SQLConnectionStringSecret": {
+				"type": "string",
+				"defaultValue": "sql-metadata-executor-cs"
+			},
+			"SQLStoreProcName": {
+				"type": "string",
+				"defaultValue": "usp_InsertGenericUsageMetadata"
+			}
+		},
+		"variables": {
+			"FolderPath": {
+				"type": "String"
+			},
+			"OutputPath": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Kusto-to-Blob"
+		},
+		"annotations": [
+			"RouteToUPETeamSev3"
+		],
+		"lastPublishTime": "2022-02-03T20:00:24Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

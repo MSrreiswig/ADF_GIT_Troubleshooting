@@ -1,0 +1,21 @@
+{
+	"name": "AKV_generic_LS",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"parameters": {
+			"KeyVaultName": {
+				"type": "string",
+				"defaultValue": "upe-common-dev-eu"
+			},
+			"KeyVaultSuffix": {
+				"type": "string",
+				"defaultValue": "vault.azure.net"
+			}
+		},
+		"annotations": [],
+		"type": "AzureKeyVault",
+		"typeProperties": {
+			"baseUrl": "https://@{linkedService().KeyVaultName}.@{linkedService().KeyVaultSuffix}"
+		}
+	}
+}

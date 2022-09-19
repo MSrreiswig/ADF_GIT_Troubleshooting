@@ -1,0 +1,23 @@
+{
+	"name": "ADE_generic_LS",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"type": "AzureDataExplorer",
+		"annotations": [],
+		"parameters": {
+			"KustoClusterName": {
+				"type": "string"
+			},
+			"KustoClusterSuffix": {
+				"type": "string"
+			},
+			"KustoDatabaseName": {
+				"type": "string"
+			}
+		},
+		"typeProperties": {
+			"endpoint": "https://@{linkedService().KustoClusterName}.@{linkedService().KustoClusterSuffix}",
+			"database": "@{linkedService().KustoDatabaseName}"
+		}
+	}
+}
